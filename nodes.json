@@ -62,6 +62,9 @@
     "minemeld.ft.o365.O365XML": {
         "class": "minemeld.ft.o365:O365XML"
     },
+    "minemeld.ft.o365.O365API": {
+        "class": "minemeld.ft.o365:O365API"
+    },
     "minemeld.ft.op.AggregateFT": {
         "class": "minemeld.ft.op:AggregateFT"
     },
@@ -112,5 +115,14 @@
     },
     "minemeld.ft.localdb.Miner": {
         "class": "minemeld.ft.localdb:Miner"
+    },
+    "minemeld.ft.threatconnect.IndicatorsMiner": {
+        "class": "minemeld.ft.threatconnect:IndicatorsMiner"
+    },
+    "minemeld.ft.threatconnect.GroupsMiner": {
+        "class": "minemeld.ft.threatconnect:GroupsMiner"
+    },
+    "minemeld.ft.visa.VTI": {
+        "class": "minemeld.ft.visa:VTI"
     }
 }

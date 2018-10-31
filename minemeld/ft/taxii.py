@@ -30,6 +30,7 @@ import gevent
 import gevent.event
 import netaddr
 import werkzeug.urls
+from six import string_types
 
 import libtaxii
 import libtaxii.clients
@@ -40,9 +41,13 @@ import stix.core.stix_package
 import stix.core.stix_header
 import stix.indicator
 import stix.common.vocabs
+import stix.common.information_source
+import stix.common.identity
 import stix.extensions.marking.ais
 import stix.data_marking
 import stix.extensions.marking.tlp
+
+import stix_edh
 
 import cybox.core
 import cybox.objects.address_object
@@ -50,10 +55,19 @@ import cybox.objects.domain_name_object
 import cybox.objects.uri_object
 import cybox.objects.file_object
 
+import mixbox.idgen
+import mixbox.namespaces
+
 from . import basepoller
 from . import base
 from . import actorbase
 from .utils import dt_to_millisec, interval_in_sec, utc_millisec
+
+
+# stix_edh is imported to register the EDH data marking extensions, but it is not directly used.
+# Delete the symbol to silence the warning about the import being unnecessary and prevent the
+# PyCharm 'Optimize Imports' operation from removing the import.
+del stix_edh
 
 LOG = logging.getLogger(__name__)
 
@@ -65,6 +79,12 @@ _STIX_MINEMELD_HASHES = [
     'sha256',
     'sha512'
 ]
+
+
+def set_id_namespace(uri, name):
+    # maec and cybox
+    NS = mixbox.namespaces.Namespace(uri, name)
+    mixbox.idgen.set_id_namespace(NS)
 
 
 class TaxiiClient(basepoller.BasePollerFT):
@@ -623,7 +643,7 @@ class TaxiiClient(basepoller.BasePollerFT):
             if ov is None:
                 LOG.error('%s - no value in observable props', self.name)
                 return None
-            if type(ov) != str:
+            if not isinstance(ov, string_types):
                 ov = ov.get('value', None)
                 if ov is None:
                     LOG.error('%s - no value in observable value', self.name)
@@ -636,10 +656,10 @@ class TaxiiClient(basepoller.BasePollerFT):
                 file_name = op.get('file_name')
                 if isinstance(file_name, dict):
                     ov = op['file_name'].get('value', None)
-                    result['type'] = 'file-name'
+                    result['type'] = 'file.name'
                 else:
                     ov = op['file_name']
-                    result['type'] = 'file-name'
+                    result['type'] = 'file.name'
 
             hashes = op.get('hashes', [])
             if not isinstance(hashes, list) or len(hashes) == 0:
@@ -657,7 +677,7 @@ class TaxiiClient(basepoller.BasePollerFT):
                 if hvalue is None:
                     continue
 
-                if not isinstance(hvalue, str) and not isinstance(hvalue, unicode):
+                if not isinstance(hvalue, string_types):
                     if not isinstance(hvalue, dict):
                         continue
 
@@ -669,12 +689,12 @@ class TaxiiClient(basepoller.BasePollerFT):
                 if htype is None:
                     continue
 
-                elif isinstance(htype, str):
+                elif isinstance(htype, string_types):
                     htype = htype.lower()
 
                 elif isinstance(htype, dict):
                     htype = htype.get('value', None)
-                    if htype is None or not (isinstance(htype, str) or isinstance(htype, unicode)):
+                    if htype is None or not isinstance(htype, string_types):
                         continue
 
                 htype = htype.lower()
@@ -716,7 +736,7 @@ class TaxiiClient(basepoller.BasePollerFT):
             if ov is None:
                 LOG.error('%s - no value in observable props', self.name)
                 return None
-            if type(ov) != str:
+            if not isinstance(ov, string_types):
                 ov = ov.get('value', None)
                 if ov is None:
                     LOG.error('%s - no value in observable value', self.name)
@@ -773,7 +793,7 @@ class TaxiiClient(basepoller.BasePollerFT):
             if ov is None:
                 LOG.error('%s - no value in observable props', self.name)
                 return None
-            if type(ov) != str:
+            if not isinstance(ov, string_types):
                 ov = ov.get('value', None)
                 if ov is None:
                     LOG.error('%s - no value in observable value', self.name)
@@ -790,7 +810,7 @@ class TaxiiClient(basepoller.BasePollerFT):
             if ov is None:
                 LOG.error('%s - no value in observable props', self.name)
                 return None
-            if type(ov) != str:
+            if not isinstance(ov, string_types):
                 ov = ov.get('value', None)
                 if ov is None:
                     LOG.error('%s - no value in observable value', self.name)
@@ -874,12 +894,12 @@ class TaxiiClient(basepoller.BasePollerFT):
             if hashes is not None:
                 for i in hashes:
                     if 'type' in i.keys():
-                        if type(i['type']) == str:
+                        if isinstance(i['type'], string_types):
                             hash_type = i['type']
                         else:
                             hash_type = i['type'].get('value', None)
                     if 'simple_hash_value' in i.keys():
-                        if type(i['simple_hash_value']) == str:
+                        if isinstance(i['simple_hash_value'], string_types):
                             result[hash_type] = i['simple_hash_value']
                         else:
                             result[hash_type] = i['simple_hash_value'].get('value', None)
@@ -928,7 +948,7 @@ class TaxiiClient(basepoller.BasePollerFT):
             LOG.debug('WindowsExecutableFileObjectType OP: {!r}'.format(op))
 
             if 'file_name' in op.keys():
-                if type(op['file_name'] == str):
+                if isinstance(op['file_name'], string_types):
                     ov = op['file_name']
                 else:
                     ov = op['file_name'].get('value', None)
@@ -943,12 +963,12 @@ class TaxiiClient(basepoller.BasePollerFT):
             if hashes is not None:
                 for i in hashes:
                     if 'type' in i.keys():
-                        if type(i['type']) == str:
+                        if isinstance(i['type'], string_types):
                             hash_type = i['type']
                         else:
                             hash_type = i['type'].get('value', None)
                     if 'simple_hash_value' in i.keys():
-                        if type(i['simple_hash_value']) == str:
+                        if isinstance(i['simple_hash_value'], string_types):
                             result[hash_type] = i['simple_hash_value']
                         else:
                             result[hash_type] = i['simple_hash_value'].get('value', None)
@@ -1235,6 +1255,28 @@ def _stix_ip_observable(namespace, indicator, value):
     return observables
 
 
+def _stix_email_addr_observable(namespace, indicator, value):
+    category = cybox.objects.address_object.Address.CAT_EMAIL
+
+    id_ = '{}:observable-{}'.format(
+        namespace,
+        uuid.uuid4()
+    )
+
+    ao = cybox.objects.address_object.Address(
+        address_value=indicator,
+        category=category
+    )
+
+    o = cybox.core.Observable(
+        title='{}: {}'.format(value['type'], indicator),
+        id_=id_,
+        item=ao
+    )
+
+    return [o]
+
+
 def _stix_domain_observable(namespace, indicator, value):
     id_ = '{}:observable-{}'.format(
         namespace,
@@ -1320,6 +1362,10 @@ _TYPE_MAPPING = {
     'md5': {
         'indicator_type': stix.common.vocabs.IndicatorType.TERM_FILE_HASH_WATCHLIST,
         'mapper': _stix_hash_observable
+    },
+    'email-addr': {
+        'indicator_type': stix.common.vocabs.IndicatorType.TERM_MALICIOUS_EMAIL,
+        'mapper': _stix_email_addr_observable
     }
 }
 
@@ -1372,6 +1418,11 @@ class DataFeed(actorbase.ActorBaseFT):
             LOG.error('{} - attributes_package_sdescription should be a list - ignored')
             self.attributes_package_sdescription = []
 
+        self.attributes_package_information_source = self.config.get('attributes_package_information_source', [])
+        if not isinstance(self.attributes_package_information_source, list):
+            LOG.error('{} - attributes_package_information_source should be a list - ignored')
+            self.attributes_package_information_source = []
+
     def connect(self, inputs, output):
         output = False
         super(DataFeed, self).connect(inputs, output)
@@ -1400,7 +1451,7 @@ class DataFeed(actorbase.ActorBaseFT):
         )
 
     def _read_oldest_indicator(self):
-        olist = self.SR.zrevrange(
+        olist = self.SR.zrange(
             self.redis_skey, 0, 0,
             withscores=True
         )
@@ -1436,9 +1487,7 @@ class DataFeed(actorbase.ActorBaseFT):
             LOG.error('%s - Unsupported indicator type: %s', self.name, type_)
             return
 
-        nsdict = {}
-        nsdict[self.namespaceuri] = self.namespace
-        stix.utils.set_id_namespace(nsdict)
+        set_id_namespace(self.namespaceuri, self.namespace)
 
         title = None
         if len(self.attributes_package_title) != 0:
@@ -1467,6 +1516,19 @@ class DataFeed(actorbase.ActorBaseFT):
                 sdescription = '{}'.format(value[pd])
                 break
 
+        information_source = None
+        if len(self.attributes_package_information_source) != 0:
+            for isource in self.attributes_package_information_source:
+                if isource not in value:
+                    continue
+
+                information_source = '{}'.format(value[isource])
+                break
+
+            if information_source is not None:
+                identity = stix.common.identity.Identity(name=information_source)
+                information_source = stix.common.information_source.InformationSource(identity=identity)
+
         handling = None
         share_level = value.get('share_level', None)
         if share_level in ['white', 'green', 'amber', 'red']:
@@ -1481,12 +1543,17 @@ class DataFeed(actorbase.ActorBaseFT):
             handling.add_marking(marking_specification)
 
         header = None
-        if title is not None or description is not None or handling is not None or sdescription is not None:
+        if (title is not None or
+            description is not None or
+            handling is not None or
+            sdescription is not None or
+            information_source is not None):
             header = stix.core.STIXHeader(
                 title=title,
                 description=description,
                 handling=handling,
-                short_description=sdescription
+                short_description=sdescription,
+                information_source=information_source
             )
 
         spid = '{}:indicator-{}'.format(

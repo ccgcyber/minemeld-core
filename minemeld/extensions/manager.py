@@ -7,8 +7,7 @@ from email.parser import Parser
 from collections import namedtuple
 from zipfile import ZipFile
 
-from pkg_resources import EntryPoint
-from pip.utils import egg_link_path
+from pkg_resources import EntryPoint, parse_version
 
 import minemeld.loader
 
@@ -63,6 +62,15 @@ ExternalExtension = namedtuple(
 )
 
 
+def _egg_link_path(dist):
+    for path_item in sys.path:
+        egg_link = os.path.join(path_item, dist.project_name + '.egg-link')
+        LOG.debug('{}'.format(egg_link))
+        if os.path.isfile(egg_link):
+            return egg_link
+    return None
+
+
 def _read_metadata(metadata_str):
     return Parser().parsestr(metadata_str)
 
@@ -70,7 +78,7 @@ def _read_metadata(metadata_str):
 def _read_entry_points(ep_contents):
     ep_map = EntryPoint.parse_map(ep_contents)
 
-    for epgname, epgroup in ep_map.iteritems():
+    for _, epgroup in ep_map.iteritems():
         for epname, ep in epgroup.iteritems():
             epgroup[epname] = str(ep)
 
@@ -95,7 +103,7 @@ def _activated_extensions():
                 continue
 
             location = 'site-packages'
-            egg_link = egg_link_path(epvalue.ep.dist)
+            egg_link = _egg_link_path(epvalue.ep.dist)
             if egg_link is not None:
                 with open(egg_link, 'r') as f:
                     location = f.readline().strip()

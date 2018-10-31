@@ -2,9 +2,8 @@ import logging
 
 import pip
 
-from pkg_resources import WorkingSet, _initialize_master_working_set
+from pkg_resources import working_set, WorkingSet
 from collections import namedtuple
-
 
 LOG = logging.getLogger(__name__)
 
@@ -23,11 +22,6 @@ MMEntryPoint = namedtuple(
 _ENTRYPOINT_GROUPS = {}
 
 _WS = None
-
-
-def _installed_versions():
-    installed_dists = pip.get_installed_distributions()
-    return {d.project_name: d for d in installed_dists}
 
 
 def _conflicts(requirements, installed):
@@ -52,10 +46,9 @@ def _conflicts(requirements, installed):
 def _initialize_entry_point_group(entrypoint_group):
     global _WS
 
-    installed = _installed_versions()
+    installed = {d.project_name: d for d in working_set}
 
     if _WS is None:
-        _initialize_master_working_set()
         _WS = WorkingSet()
 
     cache = {}
